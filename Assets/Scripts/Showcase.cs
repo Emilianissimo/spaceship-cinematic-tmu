@@ -1,13 +1,13 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
+using UnityEngine.SceneManagement;
 using System;
 
 public class IdleCinematicManager : MonoBehaviour
 {
-    [Header("Настройки времени (секунды)")]
-    [SerializeField] private float idleThreshold = 5f;
-    [SerializeField] private float inputCooldown = 1f; // Буфер защиты от случайного сброса
+    [SerializeField] private float idleThreshold = 20f;
+    [SerializeField] private float inputCooldown = 1f;
 
     [SerializeField] private GameObject cinematicShowcase;
 
@@ -20,7 +20,6 @@ public class IdleCinematicManager : MonoBehaviour
 
     private void OnEnable()
     {
-        // Подписка на глобальный ввод
         anyKeySubscription = InputSystem.onAnyButtonPress.Call(OnInputDetected);
     }
 
@@ -31,15 +30,21 @@ public class IdleCinematicManager : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        if (Keyboard.current != null)
         {
-            Application.Quit();
-            return;
+            if (Keyboard.current.tabKey.wasPressedThisFrame){
+                int activeSceneIndex = SceneManager.GetActiveScene().buildIndex;
+                SceneManager.LoadScene(activeSceneIndex);
+                return;
+            }
+            if (Keyboard.current.escapeKey.wasPressedThisFrame){
+                Application.Quit();
+                return;
+            }
         }
         
         if (isCinematicActive)
         {
-            // Уменьшаем таймер кулдауна, пока крутится синематик
             if (cooldownTimer > 0f)
             {
                 cooldownTimer -= Time.deltaTime;
@@ -47,7 +52,6 @@ public class IdleCinematicManager : MonoBehaviour
             return;
         }
 
-        // Проверка движения мыши
         if (Mouse.current != null && Mouse.current.delta.ReadValue().sqrMagnitude > 0.1f)
         {
             ResetIdleTimer();
@@ -66,7 +70,6 @@ public class IdleCinematicManager : MonoBehaviour
     {
         if (isCinematicActive)
         {
-            // Игнорируем ввод, если кулдаун еще не прошел
             if (cooldownTimer > 0f) return;
 
             StopCinematicShow();
@@ -88,13 +91,11 @@ public class IdleCinematicManager : MonoBehaviour
     idleTimer = 0f;
     cooldownTimer = inputCooldown;
 
-    // 1. ПОЛНОСТЬЮ ВЫКЛЮЧАЕМ ИГРОВЫЕ КАМЕРЫ НА УРОВНЕ ДВИЖКА
     if (gameplayCameraHolder != null)
     {
         gameplayCameraHolder.SetActive(false); 
     }
 
-    // 2. Включаем синематик
     if (cinematicShowcase != null)
     {
         cinematicShowcase.SetActive(true);
@@ -106,13 +107,11 @@ private void StopCinematicShow()
     isCinematicActive = false;
     ResetIdleTimer();
 
-    // 1. Гасим синематик
     if (cinematicShowcase != null)
     {
         cinematicShowcase.SetActive(false);
     }
 
-    // 2. ВОЗВРАЩАЕМ ИГРОВЫЕ КАМЕРЫ В СТРОЙ
     if (gameplayCameraHolder != null)
     {
         gameplayCameraHolder.SetActive(true);
